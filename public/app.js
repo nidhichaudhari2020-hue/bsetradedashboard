@@ -22,6 +22,12 @@ function render() {
       row.append(cell);
     }); return row;
   }));
+  if (!filtered.length) {
+    const row = document.createElement('tr'), cell = document.createElement('td');
+    cell.colSpan = 6; cell.className = 'empty-state';
+    cell.textContent = 'No trades match your search. Try another client, symbol or trade ID.';
+    row.append(cell); $('rows').append(row);
+  }
   $('ledger-count').textContent = format.format(filtered.length);
   $('range').textContent = filtered.length ? `Showing ${page * 10 + 1}–${Math.min(page * 10 + 10, filtered.length)} of ${format.format(filtered.length)} trades` : 'No matching trades';
   $('page').textContent = page + 1;
@@ -32,11 +38,18 @@ function renderJob() {
   $('pull').disabled = running || !connected;
   $('pull').textContent = running ? '↻  Pull in progress' : '↓  Pull latest trades';
   $('job-status').textContent = job?.status.toUpperCase() ?? 'IDLE';
-  $('sync-title').textContent = running ? 'Syncing in the background' : job?.status === 'completed' ? 'You’re up to date' : job?.status === 'failed' ? 'Pull interrupted' : 'Ready when you are';
+  $('sync-title').textContent = running ? 'Synchronization in progress' : job?.status === 'completed' ? 'Synchronization complete' : job?.status === 'failed' ? 'Synchronization interrupted' : 'Ready to synchronize';
   $('sync-text').textContent = running ? `${job.pages} of 60 pages received. Your saved trades are ready to explore.` : job?.status === 'failed' ? `${job.error}. Saved trades are safe; start a new pull to retry.` : 'Saved trades stay available while the next batch arrives.';
   $('progress').style.width = `${(job?.pages ?? 0) / 60 * 100}%`;
+  document.querySelector('.track').setAttribute('aria-valuenow', Math.round((job?.pages ?? 0) / 60 * 100));
+  $('job-status').dataset.status = job?.status ?? 'idle';
+  $('last-sync').textContent = job?.status === 'completed' ? `Latest completion: ${time.format(new Date(job.finished))} IST` : running ? 'Existing records remain available during synchronization' : 'Start a pull to retrieve a new exchange batch';
 }
-function applySnapshot(data) { records = data.trades; job = data.job; render(); renderJob(); }
+function applySnapshot(data) {
+  records = data.trades; job = data.job;
+  $('pull-duration').textContent = `Configured pull: ${data.delayMs >= 60000 ? `${data.delayMs / 60000} minutes` : `${data.delayMs / 1000} seconds`} · 3,000 records per batch`;
+  render(); renderJob();
+}
 // One cache read for first paint. WebSocket snapshots are authoritative thereafter.
 fetch('/api/trades').then(r => { if (!r.ok) throw Error(); return r.json(); }).then(data => { if (!live) applySnapshot(data); }).catch(() => { $('notice').textContent = 'Saved trades unavailable. Waiting for live connection.'; });
 function connect() {

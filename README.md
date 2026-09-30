@@ -1,44 +1,112 @@
 # BSE Trade Desk
 
-A runnable software-engineering assessment: mock exchange, persistent dashboard, background ingestion and live completion delivery.
+### Software Engineer Technical Assessment
 
-## Run
+A persistent trade dashboard that stays responsive during long-running exchange pulls and receives completed batches automatically, without page refreshes, data polling, or scheduled jobs.
 
-Requires Node.js 22.14+ and npm. SQLite is bundled with Node (Node 22 prints an experimental-feature warning).
+**Stack:** Node.js · SQLite · WebSocket · JavaScript · HTML/CSS
+
+![Trade operations dashboard](docs/dashboard.png)
+
+## Quick start
+
+Requires **Node.js 22.14+** and npm. From the repository root:
 
 ```sh
-cd bse-trades
 npm ci
+npm run demo
+```
+
+Open **http://localhost:4300** and click **Pull latest trades**. Demo mode takes approximately 12 seconds. On a fresh database, the dashboard starts with 3,000 saved seed records; completion automatically adds another 3,000.
+
+For the assessment's **15-minute pull**, stop demo mode and run `npm start`. SQLite is bundled with Node; Node 22 may print an experimental-feature warning. No API keys, database service, or font CDN are required.
+
+## Requirement coverage
+
+| Requirement | Implementation |
+| --- | --- |
+| Mock GET /getTrades | Deterministic cursor-paginated feed; 3,000 records per batch |
+| Trade fields | ID, client, symbol, quantity, INR price and ISO timestamp |
+| Configurable 15-minute pull | 60 sequential pages; 15 seconds per page by default |
+| 30-second HTTP limit | Short page requests, 25-second fetch deadline, 30-second response cutoff |
+| Immediate dashboard access | Saved SQLite records read independently of ingestion |
+| Automatic updates | WebSocket snapshot after the database transaction commits |
+| No polling or scheduler | User-triggered asynchronous task and server-pushed events |
+| Supporting deliverables | Architecture note, reviewer guide and captioned walkthrough |
+
+## Timeout design decision
+
+Moving a 15-minute HTTP request into a background task does not remove the network's 30-second connection limit. This solution makes two assumptions explicit:
+
+1. The **mock exchange supports cursor pagination**, keeping individual HTTP responses within budget.
+2. The network permits **upgraded WebSocket connections** for push delivery.
+
+These are proposed interface and infrastructure requirements, not claims about the real BSE API. A monolithic 15-minute exchange response requires a different exchange interface or network topology. See the [architecture diagram and rationale](docs/architecture.md).
+
+## Configuration
+
+| Setting | Default | Description |
+| --- | --- | --- |
+| PORT | 4300 | Local HTTP and WebSocket port |
+| PULL_DELAY_MS | 900000 | Aggregate simulated delay, from 0 to 1,200,000 ms |
+| --demo | Off | Uses 12,000 ms unless overridden by PULL_DELAY_MS |
+| Database | data/trades.sqlite | Created automatically; retained across restarts |
+
+PowerShell:
+
+```powershell
+$env:PULL_DELAY_MS = '900000'
 npm start
 ```
 
-Open http://localhost:4300. The dashboard starts with 3,000 deterministic demonstration trades saved in SQLite. Click **Pull latest trades** to ingest another 3,000 trades. The default complete pull takes approximately **15 minutes** (60 sequential pages, 15 seconds per page, plus processing overhead). Existing records remain visible and searchable throughout.
+POSIX shell:
 
-For the walkthrough, run `npm run demo` instead: the same ingestion path takes approximately 12 seconds. Stop the current server before switching modes. `PULL_DELAY_MS` overrides either default; `PORT` overrides 4300. For PowerShell: `$env:PULL_DELAY_MS='900000'; npm start`. Supported delays: 0–1,200,000 milliseconds.
+```sh
+PULL_DELAY_MS=900000 npm start
+```
+
+Total runtime includes processing and network overhead. Each new pull uses a distinct mock batch ID to simulate new records; this does not model a real exchange watermark. The initial seed batch is demonstration data.
+
+## API reference
+
+| Interface | Result |
+| --- | --- |
+| GET /getTrades?cursor=0&batch=exchange | 50 trades, nextCursor and total; continue until cursor is null |
+| GET /api/trades | Persisted records, latest job state and configured delay |
+| POST /api/pulls | 202 Accepted with job ID; 409 Conflict if a pull is active |
+| WS /events | Initial snapshot, progress events and committed completion snapshot |
+
+Repeated requests for the same exchange batch and cursor return identical records. Trade IDs are primary keys. Partial batches are not published. Failed jobs leave saved trades available and can be retried manually.
+
+## Validation
 
 ```sh
 npm test
 ```
 
-Tests cover immediate cache reads, asynchronous acceptance, concurrent-pull rejection, completion push, reconnection snapshots, atomic publication, persistence, interrupted jobs and configuration validation.
+Integration tests cover immediate cache reads, asynchronous acceptance, concurrent-pull rejection, atomic publication, completion push, reconnection snapshots, persistence, interrupted jobs and invalid configuration.
 
-## API
+Browser verification covers searching during ingestion, automatic growth from 3,000 to 6,000 records, a single initial data request, no JavaScript errors, empty search results and mobile layout. The video uses accelerated timing. **A full 15-minute run has not been verified.**
 
-| Endpoint | Behavior |
-| --- | --- |
-| `GET /getTrades?cursor=0&batch=exchange` | Mock exchange: 50 seeded trades, `nextCursor`, and total count. Follow cursors until null for all 3,000 records. Same batch and cursor produce the same records. |
-| `GET /api/trades` | Immediate persisted trades and latest job state. |
-| `POST /api/pulls` | Returns 202 immediately; 409 if another pull is running. |
-| `WS /events` | Initial authoritative snapshot, job progress events, and committed completion snapshot. |
+## Deliverables
 
-Trade fields: `id`, `client`, `symbol`, `quantity`, `price` (INR), and ISO `timestamp`. Each new pull uses a distinct mock batch ID to simulate newly available records; this does not model a real exchange watermark. The initial `seed` batch is explicitly demonstration data.
+- [Architecture diagram and design rationale](docs/architecture.md)
+- [Reviewer evaluation guide](docs/evaluation.md)
+- [Captioned walkthrough video](docs/walkthrough.webm)
+- [Walkthrough outline](docs/walkthrough.md)
+- [Mobile screenshot](docs/mobile.png)
 
-Data lives in `data/trades.sqlite`; it survives restarts. Incomplete batches are discarded, interrupted jobs become failed, and the user can retry. There is no cron, scheduler or data polling loop. WebSocket reconnection uses bounded exponential backoff only after disconnect; it is transport recovery, not periodic fetching.
+```text
+server.js                   HTTP API, mock exchange, ingestion and SQLite
+public/                     Responsive dashboard and WebSocket client
+test/app.test.js             Integration tests
+docs/                       Architecture, reviewer guide, video and screenshots
+```
 
-See [architecture](docs/architecture.md) and [walkthrough guide](docs/walkthrough.md). The recorded walkthrough is `docs/walkthrough.webm`.
+The optional `docs/record-walkthrough.mjs` utility regenerates the video and runs browser checks. It requires Playwright, Microsoft Edge and Playwright's FFmpeg; these are not required to run the application or integration tests.
 
-## Scope
+## Operational scope
 
-This is a local, single-process assessment, bound to loopback. It has no authentication and is not an internet-facing trading service. Production additions would include authenticated users, a dedicated durable queue/worker, exchange cursor checkpoints, bounded server-side ledger pagination and shared pub/sub for multiple instances. Financial amounts here are mock display values; an accounting system should store integer minor units or decimal types.
+This is a local, single-process assessment bound to loopback. Completed trades survive restarts; unfinished jobs become failed. Socket reconnection uses backoff after disconnect and receives a fresh snapshot. It is transport recovery, not periodic data polling.
 
-The crucial protocol assumption is explicit: the exchange supports pagination, and the network permits upgraded WebSockets. A single exchange HTTP response that produces no usable result for 15 minutes cannot cross an absolute 30-second connection limit unchanged. See the architecture note for alternatives.
+Production extensions would include authentication, a durable queue, cursor checkpoints, shared coordination and pub/sub for multiple instances, and server-side pagination for an unbounded ledger. Accounting-grade money should use integer minor units or decimal types.
