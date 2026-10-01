@@ -1,5 +1,7 @@
 # BSE Trade Desk
 
+The dashboard is also published through GitHub Pages at the repository's Pages URL.
+
 ### Software Engineer Technical Assessment
 
 A persistent trade dashboard that stays responsive during long-running exchange pulls and receives completed batches automatically, without page refreshes, data polling, or scheduled jobs.
