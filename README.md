@@ -86,7 +86,7 @@ npm test
 
 Integration tests cover immediate cache reads, asynchronous acceptance, concurrent-pull rejection, atomic publication, completion push, reconnection snapshots, persistence, interrupted jobs and invalid configuration.
 
-Browser verification covers searching during ingestion, automatic growth from 3,000 to 6,000 records, a single initial data request, no JavaScript errors, empty search results and mobile layout. The video uses accelerated timing. **A full 15-minute run has not been verified.**
+Browser verification covers searching during ingestion, automatic growth from 3,000 to 6,000 records, a single initial data request, no JavaScript errors, empty search results and mobile layout. The video uses accelerated timing. **Full-duration verification passed on 1 October 2026:** 15 minutes 1.635 seconds total, 25 ms acceptance, 27 ms saved-data read during ingestion, and a maximum exchange response of 15.031 seconds across 60 requests. Completion arrived over WebSocket with 6,000 records. See [measured results](docs/full-duration-results.json). This was a local application test with the HTTP cutoff enforced, not a certification of an external network gateway.
 
 ## Deliverables
 
@@ -114,4 +114,5 @@ Production extensions would include authentication, a durable queue, cursor chec
 ## Full-duration verification
 
 Run `npm run test:full` to exercise the actual 900,000 ms configuration. This uses an isolated in-memory database, verifies saved reads during ingestion, measures each HTTP response, and waits for a WebSocket completion snapshot. It writes measured results to `docs/full-duration-results.json`. Allow approximately 15 minutes.
+
 

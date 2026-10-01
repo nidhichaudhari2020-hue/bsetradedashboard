@@ -1,0 +1,14 @@
+{
+  "passed": true,
+  "started": "2026-10-01T10:22:43.487Z",
+  "finished": "2026-10-01T10:37:45.129Z",
+  "configuredDelayMs": 900000,
+  "elapsedMs": 901635,
+  "acceptedMs": 25,
+  "cacheReadDuringPullMs": 27,
+  "exchangeRequests": 60,
+  "longestExchangeResponseMs": 15031,
+  "finalTradeCount": 6000,
+  "completionTransport": "WebSocket",
+  "note": "Local application test with enforced HTTP response cutoff; not an external gateway certification."
+}

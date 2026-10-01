@@ -28,4 +28,5 @@
 
 **Why SQLite?** Transactions and persistence are available without a separate service, making the submission easy to run. A shared production deployment would require additional coordination.
 
-**What was measured?** Accelerated ingestion, persistence and browser behavior. The default configuration represents approximately 15 minutes, but a complete 15-minute run has not been measured.
+**What was measured?** Accelerated ingestion, persistence and browser behavior, plus a full-duration local run on 1 October 2026: 901,635 ms total, 60 exchange requests, a maximum response of 15,031 ms, and WebSocket completion with 6,000 records. The saved-data read during ingestion took 27 ms. See [measured results](full-duration-results.json). The test enforces a local HTTP cutoff; external gateway behavior still needs deployment validation.
+
