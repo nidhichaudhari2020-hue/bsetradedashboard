@@ -41,7 +41,7 @@ Moving a 15-minute HTTP request into a background task does not remove the netwo
 1. The **mock exchange supports cursor pagination**, keeping individual HTTP responses within budget.
 2. The network permits **upgraded WebSocket connections** for push delivery.
 
-These are proposed interface and infrastructure requirements, not claims about the real BSE API. A monolithic 15-minute exchange response requires a different exchange interface or network topology. See the [architecture diagram and rationale](docs/architecture.md).
+These are proposed interface and infrastructure requirements, not claims about the real BSE API. A monolithic 15-minute exchange response requires a different exchange interface or network topology. See the [architecture diagram and rationale](docs/architecture.md) and [explicit assessment assumptions](docs/assumptions.md).
 
 ## Configuration
 
@@ -110,3 +110,8 @@ The optional `docs/record-walkthrough.mjs` utility regenerates the video and run
 This is a local, single-process assessment bound to loopback. Completed trades survive restarts; unfinished jobs become failed. Socket reconnection uses backoff after disconnect and receives a fresh snapshot. It is transport recovery, not periodic data polling.
 
 Production extensions would include authentication, a durable queue, cursor checkpoints, shared coordination and pub/sub for multiple instances, and server-side pagination for an unbounded ledger. Accounting-grade money should use integer minor units or decimal types.
+
+## Full-duration verification
+
+Run `npm run test:full` to exercise the actual 900,000 ms configuration. This uses an isolated in-memory database, verifies saved reads during ingestion, measures each HTTP response, and waits for a WebSocket completion snapshot. It writes measured results to `docs/full-duration-results.json`. Allow approximately 15 minutes.
+

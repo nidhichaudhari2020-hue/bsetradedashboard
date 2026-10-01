@@ -9,9 +9,11 @@
   "scripts": {
     "start": "node server.js",
     "demo": "node server.js --demo",
-    "test": "node --test test/*.test.js"
+    "test": "node --test test/*.test.js",
+    "test:full": "node test/full-duration.mjs"
   },
   "dependencies": {
     "ws": "8.22.0"
   }
 }
+
