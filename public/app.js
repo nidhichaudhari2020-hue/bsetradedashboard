@@ -1,4 +1,5 @@
 const $ = id => document.getElementById(id);
+const staticHosting = location.hostname.endsWith('.github.io');
 let records = [], page = 0, job = null, connected = false, reconnect = 500, live = false;
 const format = new Intl.NumberFormat('en-IN');
 const rupee = new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 2 });
@@ -51,7 +52,7 @@ function applySnapshot(data) {
   render(); renderJob();
 }
 // One cache read for first paint. WebSocket snapshots are authoritative thereafter.
-fetch('/api/trades').then(r => { if (!r.ok) throw Error(); return r.json(); }).then(data => { if (!live) applySnapshot(data); }).catch(() => { $('notice').textContent = 'Saved trades unavailable. Waiting for live connection.'; });
+if (!staticHosting) fetch('/api/trades').then(r => { if (!r.ok) throw Error(); return r.json(); }).then(data => { if (!live) applySnapshot(data); }).catch(() => { $('notice').textContent = 'Saved trades unavailable. Waiting for live connection.'; });
 function connect() {
   const socket = new WebSocket(`${location.protocol === 'https:' ? 'wss' : 'ws'}://${location.host}/events`);
   socket.onopen = () => { connected = true; reconnect = 500; $('connection').textContent = '● Live connection'; renderJob(); };
@@ -63,7 +64,23 @@ function connect() {
   socket.onclose = () => { connected = false; $('connection').textContent = '○ Reconnecting…'; renderJob(); setTimeout(connect, reconnect); reconnect = Math.min(reconnect * 2, 10000); };
   socket.onerror = () => socket.close();
 }
-connect();
+if (staticHosting) {
+  $('connection').textContent = 'Backend not hosted';
+  $('sync-title').textContent = 'The full application needs a running backend';
+  $('sync-text').textContent = 'This GitHub Pages site hosts the interface only. Run the application from the repository to load saved trades and start live pulls.';
+  $('job-status').textContent = 'OFFLINE';
+  $('pull-duration').textContent = 'Live ingestion unavailable on GitHub Pages';
+  $('last-sync').textContent = 'No backend connection';
+  $('range').textContent = 'Trade data is unavailable on this static site';
+  $('search').disabled = true;
+  $('previous').disabled = true;
+  $('next').disabled = true;
+  document.querySelector('.footnote').textContent = 'Static interface preview · Backend deployment required';
+  const link = document.createElement('a');
+  link.href = 'https://github.com/nidhichaudhari2020-hue/bsetradedashboard#quick-start';
+  link.textContent = 'Open repository setup instructions';
+  $('notice').replaceChildren(link);
+} else connect();
 $('pull').onclick = async () => {
   $('pull').disabled = true; $('notice').textContent = '';
   try { const response = await fetch('/api/pulls', { method: 'POST' }); const data = await response.json(); if (!response.ok) throw new Error(data.error); }

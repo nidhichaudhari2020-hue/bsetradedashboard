@@ -1,6 +1,6 @@
 # BSE Trade Desk
 
-The dashboard is also published through GitHub Pages at the repository's Pages URL.
+The [GitHub Pages site](https://nidhichaudhari2020-hue.github.io/bsetradedashboard/) is an interface-only preview. GitHub Pages cannot run this application's Node.js API, SQLite storage, or WebSocket ingestion. Use the setup instructions below for the complete working application. A full public deployment requires a Node-compatible host with persistent storage and WebSocket support.
 
 ### Software Engineer Technical Assessment
 
