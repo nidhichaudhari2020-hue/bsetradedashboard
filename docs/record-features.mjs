@@ -11,13 +11,27 @@ const started = performance.now(), chapters = [], errors = [];
 page.on('pageerror', e => errors.push(e.message));
 const stamp = ms => new Date(ms).toISOString().slice(14, 19);
 async function label(text) {
-  chapters.push(`${stamp(performance.now() - started)} — ${text}`);
-  await page.evaluate(text => {
+  const elapsed = performance.now() - started;
+  const chapterTime = stamp(elapsed);
+  chapters.push(`${chapterTime} — ${text}`);
+  await page.evaluate(({ text, elapsed, chapterTime }) => {
     let el = document.getElementById('demo-label');
     if (!el) { el = document.createElement('div'); el.id = 'demo-label'; document.body.append(el); }
-    el.style.cssText = 'position:fixed;top:0;left:230px;right:0;z-index:9999;background:#123e34;color:white;padding:15px 30px;font:600 18px Segoe UI;box-shadow:0 2px 15px #0002';
-    el.textContent = text;
-  }, text);
+    el.style.cssText = 'position:fixed;top:0;left:230px;right:0;z-index:9999;background:#123e34;color:white;padding:15px 24px;font:600 18px Segoe UI;box-shadow:0 2px 15px #0002;display:flex;align-items:center;gap:18px';
+    el.replaceChildren();
+    const clock = document.createElement('span');
+    clock.style.cssText = 'background:#f2c46b;color:#123e34;border-radius:6px;padding:8px 12px;font:bold 25px monospace;min-width:100px;text-align:center';
+    const title = document.createElement('span');
+    title.textContent = `${chapterTime} | ${text}`;
+    el.append(clock, title);
+    const origin = performance.now() - elapsed;
+    function tick() {
+      if (!clock.isConnected) return;
+      clock.textContent = new Date(performance.now() - origin).toISOString().slice(14, 19);
+      requestAnimationFrame(tick);
+    }
+    tick();
+  }, { text, elapsed, chapterTime });
 }
 async function focus(selector) {
   await page.locator(selector).evaluate(el => {
