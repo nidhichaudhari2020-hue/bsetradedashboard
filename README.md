@@ -92,6 +92,8 @@ Browser verification covers searching during ingestion, automatic growth from 3,
 
 - [Architecture diagram and design rationale](docs/architecture.md)
 - [Reviewer evaluation guide](docs/evaluation.md)
+- [Live feature demonstration](docs/features-walkthrough.webm)
+- [Feature demonstration timestamps](docs/features-timestamps.md)
 - [Full assignment walkthrough](docs/assignment-walkthrough.webm)
 - [Timestamped narration and submission message](docs/video-script.md)
 - [Short demonstration video](docs/walkthrough.webm)
@@ -116,6 +118,7 @@ Production extensions would include authentication, a durable queue, cursor chec
 ## Full-duration verification
 
 Run `npm run test:full` to exercise the actual 900,000 ms configuration. This uses an isolated in-memory database, verifies saved reads during ingestion, measures each HTTP response, and waits for a WebSocket completion snapshot. It writes measured results to `docs/full-duration-results.json`. Allow approximately 15 minutes.
+
 
 
 
